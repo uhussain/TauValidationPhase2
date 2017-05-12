@@ -351,15 +351,23 @@ Int_t input::Loop(double isocut, double vzmax, double vzmin)
       }
     }//end: for over gen particles
     if (DEBUG) std::cout << "D" << std::endl;
-
     //for efficiency plots: pick out true taus that have been reconstructed   
     for (unsigned it=0; it<gen_tauvis_eta.size(); it++){
-      if(gen_tauvis_pt.at(it) > 15 && abs(gen_tauvis_eta.at(it)) < 4.0){
-      int found_match =0;
+      //int found_match =0;
+      float difference = 0;
+      std::vector<std::pair<float,unsigned>> PtDifference;
       for (unsigned it2=0; it2<floats_tau_eta_nt_obj.size(); it2++){
 	if ( deltaR2( gen_tauvis_eta.at(it) , gen_tauvis_phi.at(it) , floats_tau_eta_nt_obj.at(it2) , floats_tau_phi_nt_obj.at(it2) ) < MAX_DR2 ){
-    if(floats_tau_pt_nt_obj.at(it2) > 18 && abs(floats_tau_eta_nt_obj.at(it2)) < 4.0) {
-	  gen_tauvis_eta_reco.push_back(  gen_tauvis_eta.at(it) );
+    difference = abs(gen_tauvis_pt.at(it)-floats_tau_pt_nt_obj.at(it2));//calculate pt difference between gen and reco object
+	  //as there could be multiple reco objects that match in dR we store the index, difference in a vector of pairs
+    PtDifference.push_back(std::make_pair(difference,it2));}}//end the reco object loop
+    //sort this vector of pairs using the first value in the pair which is difference in pt
+    std::sort(PtDifference.begin(),PtDifference.end(),pairCompare);
+    //After sorting in ascending order by PtDifference, first element should be our "correct" reco object
+    std::cout<<"PtDifference.size(): "<<PtDifference.size()<<std::endl;
+    if(PtDifference.size()>0){
+    unsigned it2 = PtDifference.at(0).second;
+    gen_tauvis_eta_reco.push_back(  gen_tauvis_eta.at(it) );
 	  gen_tauvis_pt_reco.push_back(   gen_tauvis_pt.at(it)  );
 	  tau_pt_match.push_back( floats_tau_pt_nt_obj.at(it2) );
 	  tau_eta_match.push_back( floats_tau_eta_nt_obj.at(it2) );
@@ -380,14 +388,12 @@ Int_t input::Loop(double isocut, double vzmax, double vzmin)
 	  if ( fabs(gen_tauvis_eta.at(it))<4.0 ){ gen_tauvis_pt23_id.push_back( gen_tauvis_pt.at(it) );   h_gen_tauvis_pt23_id->Fill(  gen_tauvis_pt.at(it) );}
 	  if ( gen_tauvis_pt.at(it)>EFF_MIN_PT && fabs(gen_tauvis_eta.at(it))<EFF_MAX_ETA ){ c_id++; }
 	
-    found_match=1;
-  }
-      }
-	if (found_match) break;
-      }
-      }
-      }
-
+    //found_match=1;
+  //}
+    } 
+//	if (found_match) break;
+      //}
+   }
     //  for (unsigned it=0; it<floats_tau_pdgId_nt_obj.size(); it++){
     //    if ( fabs( floats_tau_pdgId_nt_obj.at(it) ) == 15 && floats_tau_genSize_nt_obj.at(it)>0 ){
     for (unsigned it=0; it<floats_tau_eta_nt_obj.size(); it++){
